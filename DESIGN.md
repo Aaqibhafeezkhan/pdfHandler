@@ -276,20 +276,29 @@ base image or a more complex multi-stage setup — not worth it for a homelab to
 
 ```
 pdfHandler/
-├── main.go                  # Gin server, route registration
+├── main.go                  # Gin server, middleware, route registration
+├── main_test.go             # Middleware: headers, body limit, healthz, UI
 ├── go.mod
 ├── go.sum
 ├── handlers/
-│   ├── util.go              # Shared helpers (temp dir, zip)
+│   ├── util.go              # Validation, sandboxing, error and zip helpers
 │   ├── merge.go
 │   ├── split.go
 │   ├── compress.go
 │   ├── rotate.go
 │   ├── pdf_to_image.go
 │   ├── image_to_pdf.go
-│   └── protect.go           # Covers both protect and unlock
+│   ├── preview.go
+│   ├── protect.go           # Covers both protect and unlock
+│   ├── testutil_test.go     # Fixture builders and the multipart request helper
+│   ├── validation_test.go   # Rejection rules and error-leak checks
+│   └── operations_test.go   # Happy paths for each operation
+├── scripts/
+│   └── smoke.sh             # Functional test against a running instance
 ├── static/
 │   └── index.html           # Self-contained SPA (HTML + CSS + JS)
+├── .github/workflows/
+│   └── ci.yml               # Build/test, govulncheck, container smoke test
 ├── Dockerfile
 ├── DESIGN.md                # This file
 └── k8s/
@@ -298,6 +307,24 @@ pdfHandler/
     ├── service.yaml          # NodePort 30880
     └── ingress.yaml          # pdf.home.lab via nginx
 ```
+
+### Testing strategy
+
+Two layers, split by what each can actually catch.
+
+The Go tests drive the handlers through `httptest`, which makes the validation
+and rejection rules cheap to assert exhaustively — every bad `pages` value, every
+hostile filename, every non-PDF upload. Fixtures are real PDFs built through
+pdfcpu at test time rather than checked-in blobs, so they exercise the same
+parser the handlers use and there is nothing binary to review in a diff.
+
+What that cannot reach is the artifact that ships: the image build, the bundled
+ghostscript and poppler, the response headers as an HTTP client sees them, and
+the 100 MB body cap, which is impractical to assert in a unit test but trivial
+over a socket. `scripts/smoke.sh` covers those against a running container, and
+CI runs it under the same constraints as the Deployment — non-root, read-only
+root filesystem, capabilities dropped — so a change that quietly needs to write
+outside `/tmp` fails the build instead of the cluster.
 
 ---
 
@@ -308,7 +335,7 @@ pdfHandler/
 | No auth | Anyone on the network can use it | Add basic auth via nginx-ingress annotation |
 | No rate limiting | Many concurrent compress jobs can still saturate the CPU limit | Add Gin middleware; per-request timeouts already bound each job |
 | Ingress serves plain HTTP | `protect`/`unlock` passwords cross the LAN in the clear | Terminate TLS at the ingress (commented block in `k8s/ingress.yaml`); the Tailscale route already has HTTPS |
-| No automated tests | Regressions are caught only by manual smoke testing | Add handler tests against the `httptest` server |
+| No load/soak testing | Behaviour under sustained concurrent use is unmeasured | Drive the smoke suite in parallel against a deployed instance |
 | Single replica | No HA | Scale to 2+ replicas (stateless, safe to do) |
 | No progress feedback | Long compress jobs appear frozen | Add SSE or WebSocket progress endpoint |
 | ghostscript subprocess | Extra process fork per compress request | Acceptable at homelab scale |

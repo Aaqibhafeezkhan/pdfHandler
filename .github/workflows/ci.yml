@@ -1,0 +1,138 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Only read the repo; nothing here publishes anything.
+permissions:
+  contents: read
+
+# A newer push to the same branch makes an in-flight run obsolete.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      # The compress and rasterise handlers shell out to these. Without them
+      # those tests would silently skip, so they are installed rather than
+      # left to chance — verify-tools below fails the job if that regresses.
+      - name: Install ghostscript and poppler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ghostscript poppler-utils
+          gs --version
+          pdftoppm -v
+
+      - name: gofmt
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "These files need gofmt:"
+            echo "$unformatted"
+            gofmt -d .
+            exit 1
+          fi
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: Build
+        run: go build ./...
+
+      - name: Test
+        run: go test -race -coverprofile=coverage.out -covermode=atomic ./...
+
+      - name: Coverage summary
+        run: |
+          go tool cover -func=coverage.out | tail -1
+          {
+            echo '### Coverage'
+            echo '```'
+            go tool cover -func=coverage.out | tail -20
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.out
+
+  vulncheck:
+    name: govulncheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      # Reports only advisories whose vulnerable symbols this code actually
+      # reaches, so a finding here is worth acting on rather than triaging.
+      - name: Run govulncheck
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+  functional:
+    name: Functional test against the container
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      # Builds the real image, so a broken Dockerfile fails here rather than
+      # after a release. Loaded locally; nothing is pushed.
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: pdfhandler:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Same constraints the Deployment applies: non-root, read-only root
+      # filesystem, no capabilities. Catches a change that quietly needs to
+      # write outside /tmp.
+      - name: Start the container
+        run: |
+          docker run -d --name pdfhandler-ci \
+            -p 8080:8080 \
+            --read-only --tmpfs /tmp:rw,size=2g \
+            --user 1001:1001 \
+            --cap-drop ALL \
+            --security-opt no-new-privileges \
+            pdfhandler:ci
+
+      - name: Install test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ghostscript poppler-utils
+
+      - name: Smoke test
+        run: ./scripts/smoke.sh http://127.0.0.1:8080
+
+      - name: Container logs
+        if: always()
+        run: docker logs pdfhandler-ci
+
+      - name: Stop the container
+        if: always()
+        run: docker rm -f pdfhandler-ci || true

@@ -11,7 +11,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func main() {
+// newRouter wires the routes and middleware. Kept separate from main so tests
+// can drive the real router — middleware included — through httptest.
+func newRouter() (*gin.Engine, error) {
 	r := gin.Default()
 
 	// Bounds what a multipart form buffers in RAM. The hard cap on the request
@@ -22,7 +24,7 @@ func main() {
 	// IP through X-Forwarded-For. Behind the nginx ingress the real address is
 	// the ingress pod's, so trust nothing and read RemoteAddr.
 	if err := r.SetTrustedProxies(nil); err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	r.Use(securityHeaders(), bodyLimit(handlers.MaxUploadBytes))
@@ -45,6 +47,15 @@ func main() {
 		api.POST("/protect", handlers.Protect)
 		api.POST("/unlock", handlers.Unlock)
 		api.POST("/preview", handlers.Preview)
+	}
+
+	return r, nil
+}
+
+func main() {
+	r, err := newRouter()
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	addr := ":8080"

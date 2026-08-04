@@ -1,5 +1,7 @@
 # PDF Handler
 
+[![CI](https://github.com/rafaelsilvabr/pdfHandler/actions/workflows/ci.yml/badge.svg)](https://github.com/rafaelsilvabr/pdfHandler/actions/workflows/ci.yml)
+
 A self-hosted PDF toolkit. One Go binary serves both the JSON API and a
 self-contained web UI — no database, no object storage, no external service.
 Files are processed in a temp directory and deleted when the response is sent.
@@ -52,6 +54,39 @@ Or build the container, which bundles both tools:
 ```bash
 docker build -t pdfhandler .
 ```
+
+## Testing
+
+Two layers, both run by [CI](.github/workflows/ci.yml) on every push and pull
+request.
+
+**Go tests** cover the handlers in isolation — the validation and rejection
+rules, the zip and PDF output of each operation, and the middleware. Fixtures
+are real PDFs built through pdfcpu at test time, so there are no binary blobs in
+the repo. Tests that need ghostscript or poppler skip when those aren't
+installed:
+
+```bash
+go test ./...
+go test -race -cover ./...
+```
+
+**A functional smoke test** drives a running instance over HTTP and checks what
+unit tests can't: the built container, its bundled tools, the response headers,
+and the 100 MB body cap end to end.
+
+```bash
+docker build -t pdfhandler .
+docker run -d --name pdfh -p 8080:8080 \
+  --read-only --tmpfs /tmp --user 1001:1001 --cap-drop ALL pdfhandler
+./scripts/smoke.sh http://127.0.0.1:8080
+docker rm -f pdfh
+```
+
+CI runs the container under the same constraints the Kubernetes Deployment
+applies — non-root, read-only root filesystem, all capabilities dropped — so a
+change that quietly needs to write outside `/tmp` fails the build rather than
+the cluster. `govulncheck` runs as a separate job.
 
 ## Configuration
 
@@ -121,7 +156,6 @@ code outside the standard library.
   beyond a trusted LAN — `k8s/ingress.yaml` has a commented block for this.
 - **No rate limiting.** Per-request timeouts and the CPU limit bound each job,
   but many concurrent compressions can still saturate a node.
-- **No automated tests.** Changes are verified by hand.
 
 ## How it works
 
