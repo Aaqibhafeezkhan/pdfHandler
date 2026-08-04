@@ -8,6 +8,8 @@ Files are processed in a temp directory and deleted when the response is sent.
 
 Built for a homelab Kubernetes cluster, but it runs anywhere Docker does.
 
+![The PDF Handler home screen: a grid of cards for merge, split, compress, rotate, PDF-to-image, image-to-PDF, protect and unlock](images/ui.png)
+
 ## Features
 
 | Operation | What it does |

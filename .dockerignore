@@ -5,7 +5,11 @@
 *.tar.gz
 pdfhandler
 k8s/
+scripts/
+images/
 DESIGN.md
+README.md
+LICENSE
 .env
 .env.*
 *.key
