@@ -28,10 +28,10 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: pdfhandler
-          # Pin a versioned tag per release rather than tracking :latest, so a
-          # rollback is a manifest change instead of a race with the registry.
-          image: r4faelrs/pdfhandler:latest
-          imagePullPolicy: Always
+          # Pinned per release rather than tracking :latest, so a rollback is a
+          # manifest change instead of a race with whatever the registry holds.
+          image: r4faelrs/pdfhandler:v1.0.0
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
           # Container-level security context (required by restricted PodSecurity policy)
