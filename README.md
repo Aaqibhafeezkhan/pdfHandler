@@ -177,6 +177,62 @@ static/index.html    The entire UI — HTML, CSS and JS in one file
 k8s/                 Namespace, Deployment, Service, Ingress
 ```
 
+## Contributing
+
+Issues and pull requests are welcome. This is a homelab project, so the bar is
+"does it work and is it safe", not process.
+
+### Before you open a PR
+
+```bash
+gofmt -l .        # must print nothing
+go vet ./...
+go test -race ./...
+```
+
+CI runs those plus `govulncheck` and the container smoke test, so it is worth
+running the functional layer too if you touched a handler or the Dockerfile —
+see [Testing](#testing). All three jobs must be green to merge.
+
+### Adding an operation
+
+Each operation is one file in `handlers/`. To add one:
+
+1. Write the handler. Take the shared helpers from `util.go` rather than
+   rolling your own — `saveUploadedPDF` for the magic-byte check, `runTool` for
+   anything that shells out, `failInternal`/`failBadRequest`/`failUpload` for
+   responses.
+2. Register the route in `newRouter` in `main.go`.
+3. Add tests to both layers: the rejection cases in
+   `handlers/validation_test.go`, the happy path in
+   `handlers/operations_test.go`, and a line in `scripts/smoke.sh`.
+4. Add a card to the UI in `static/index.html`, and a row to the API table here.
+
+### What review will look for
+
+The handlers take untrusted files and hand them to ghostscript, poppler and
+pdfcpu, so a few rules are not negotiable:
+
+- **Validate and reject, don't coerce.** A bad parameter is a 400, not a silent
+  fallback to a default the caller didn't ask for.
+- **Never build a path from a client-supplied filename.** Name the temp file
+  yourself; take at most a sanitised extension. `safeImageExt` exists for this.
+- **Never echo tool output or library errors to the client.** They quote temp
+  paths and fragments of the uploaded document. Log them, return a fixed
+  message.
+- **Bound anything that can run long or grow large** — a timeout on the command,
+  a cap on the count.
+
+Comments should explain *why*, not restate the code. Same for commit messages:
+say what problem the change solves and what you ruled out. The existing history
+is the reference.
+
+### Reporting a security issue
+
+Please don't open a public issue for a vulnerability. Use GitHub's [private
+vulnerability reporting](https://github.com/rafaelsilvabr/pdfHandler/security/advisories/new)
+so it can be fixed before it is described in public.
+
 ## Built with
 
 [Gin](https://github.com/gin-gonic/gin) ·
