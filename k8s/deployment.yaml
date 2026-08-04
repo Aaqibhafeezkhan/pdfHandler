@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pdfhandler
+  namespace: pdfhandler-ns
+  labels:
+    app: pdfhandler
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pdfhandler
+  template:
+    metadata:
+      labels:
+        app: pdfhandler
+    spec:
+      # Pod-level security context
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault
+      # Nothing here talks to the Kubernetes API, so don't mount a token that an
+      # attacker who lands in the container could reuse.
+      automountServiceAccountToken: false
+      containers:
+        - name: pdfhandler
+          # Pin a versioned tag per release rather than tracking :latest, so a
+          # rollback is a manifest change instead of a race with the registry.
+          image: r4faelrs/pdfhandler:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          # Container-level security context (required by restricted PodSecurity policy)
+          securityContext:
+            allowPrivilegeEscalation: false
+            # The binary and static assets are never written to; ghostscript,
+            # pdftoppm and pdfcpu only need /tmp, mounted as emptyDir below.
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1001
+            capabilities:
+              drop: ["ALL"]
+          # ghostscript can spike CPU during compression; limits prevent starvation
+          # of other workloads on the same node.
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "1000m"
+          env:
+            - name: GIN_MODE
+              value: release
+            - name: HOME
+              value: /tmp
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 10
+      volumes:
+        # sizeLimit caps scratch space, so a stream of large uploads evicts this
+        # pod rather than filling the node's disk.
+        - name: tmp
+          emptyDir:
+            sizeLimit: 2Gi

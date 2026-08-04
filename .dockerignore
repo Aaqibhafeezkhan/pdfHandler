@@ -1,0 +1,12 @@
+# Keep the build context small and free of anything that isn't needed to compile.
+.git
+.gitignore
+*.tar
+*.tar.gz
+pdfhandler
+k8s/
+DESIGN.md
+.env
+.env.*
+*.key
+*.pem

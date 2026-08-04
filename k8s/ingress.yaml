@@ -1,0 +1,36 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pdfhandler-ingress
+  namespace: pdfhandler-ns
+  annotations:
+    # nginx default is 1 MB — override to allow large PDF uploads
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "120"
+spec:
+  ingressClassName: nginx
+  # This host is served over plain HTTP. The /api/protect and /api/unlock
+  # endpoints carry PDF passwords in the request body, so on anything wider than
+  # a trusted LAN terminate TLS here — issue a cert for pdf.home.lab, then
+  # uncomment the block below and add the redirect annotation:
+  #   nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+  #
+  # tls:
+  #   - hosts:
+  #       - pdf.home.lab
+  #     secretName: pdfhandler-tls
+  #
+  # The Tailscale-exposed service (see service.yaml) already gets HTTPS from the
+  # tailnet's own certificates and needs nothing here.
+  rules:
+    - host: pdf.home.lab
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: pdfhandler-svc
+                port:
+                  number: 80

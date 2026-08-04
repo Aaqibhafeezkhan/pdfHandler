@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: pdfhandler-svc
+  namespace: pdfhandler-ns
+  annotations:
+    # Tailscale Kubernetes Operator: exposes this service on your Tailnet
+    # as https://pdfhandler.<tailnet-name>.ts.net
+    tailscale.com/expose: "true"
+    tailscale.com/hostname: "pdfhandler"
+spec:
+  # NodePort allows direct hostIP:30880 access without needing DNS or Ingress.
+  # This is the primary access method for homelab convenience.
+  # The Ingress (pdf.home.lab) coexists on the same service.
+  type: NodePort
+  selector:
+    app: pdfhandler
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+      nodePort: 30880

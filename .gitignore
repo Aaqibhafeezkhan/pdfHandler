@@ -1,0 +1,27 @@
+# Compiled binary
+pdfhandler
+*.exe
+
+# Container image exports (pdfHandler.tar is ~65 MB — build it, don't commit it)
+*.tar
+*.tar.gz
+
+# Go build/test output
+*.test
+*.out
+vendor/
+
+# Local environment / secrets
+.env
+.env.*
+*.key
+*.pem
+*.crt
+kubeconfig
+*.kubeconfig
+
+# Editor / OS noise
+.vscode/
+.idea/
+*.swp
+.DS_Store
