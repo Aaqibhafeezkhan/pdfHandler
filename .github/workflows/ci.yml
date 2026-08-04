@@ -24,9 +24,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Deliberately not go-version-file: the go.mod directive is a language
+      # floor, so setup-go would install that exact release — 1.25.0, the
+      # unpatched first cut of the line — and every stdlib fix since would be
+      # missing. "stable" tracks the newest patch release, which is also what
+      # the golang image in the Dockerfile resolves to.
       - uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version: stable
           cache: true
 
       # The compress and rasterise handlers shell out to these. Without them
@@ -79,9 +84,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Deliberately not go-version-file: the go.mod directive is a language
+      # floor, so setup-go would install that exact release — 1.25.0, the
+      # unpatched first cut of the line — and every stdlib fix since would be
+      # missing. "stable" tracks the newest patch release, which is also what
+      # the golang image in the Dockerfile resolves to.
       - uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version: stable
           cache: true
 
       # Reports only advisories whose vulnerable symbols this code actually
