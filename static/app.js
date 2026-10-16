@@ -370,7 +370,57 @@ function renderFileList() {
     item.className = 'file-item' + (reorderable ? ' is-reorderable' : '');
     item.dataset.index = index;
     item.setAttribute('role', 'listitem');
-    item.innerHTML = `${reorderable ? '<span class="file-position" aria-hidden="true"></span>' : ''}<div class="file-thumb-placeholder">${icon('file')}</div><span class="fname"></span><span class="fsize">${formatBytes(file.size)}</span>${reorderable ? `<div class="file-order-controls" role="group"><button class="file-order-button" data-file-action="up" type="button">${icon('up')}</button><button class="file-order-button" data-file-action="down" type="button">${icon('down')}</button></div>` : ''}<button class="remove-file" data-file-action="remove" type="button">${icon('close')}</button>`;
+
+    if (reorderable) {
+      const position = document.createElement('span');
+      position.className = 'file-position';
+      position.setAttribute('aria-hidden', 'true');
+      item.appendChild(position);
+    }
+
+    const thumbPlaceholder = document.createElement('div');
+    thumbPlaceholder.className = 'file-thumb-placeholder';
+    thumbPlaceholder.innerHTML = icon('file');
+    item.appendChild(thumbPlaceholder);
+
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'fname';
+    item.appendChild(nameSpan);
+
+    const sizeSpan = document.createElement('span');
+    sizeSpan.className = 'fsize';
+    sizeSpan.textContent = formatBytes(file.size);
+    item.appendChild(sizeSpan);
+
+    if (reorderable) {
+      const controls = document.createElement('div');
+      controls.className = 'file-order-controls';
+      controls.setAttribute('role', 'group');
+
+      const upButton = document.createElement('button');
+      upButton.className = 'file-order-button';
+      upButton.dataset.fileAction = 'up';
+      upButton.type = 'button';
+      upButton.innerHTML = icon('up');
+      controls.appendChild(upButton);
+
+      const downButton = document.createElement('button');
+      downButton.className = 'file-order-button';
+      downButton.dataset.fileAction = 'down';
+      downButton.type = 'button';
+      downButton.innerHTML = icon('down');
+      controls.appendChild(downButton);
+
+      item.appendChild(controls);
+    }
+
+    const removeButton = document.createElement('button');
+    removeButton.className = 'remove-file';
+    removeButton.dataset.fileAction = 'remove';
+    removeButton.type = 'button';
+    removeButton.innerHTML = icon('close');
+    item.appendChild(removeButton);
+
     item.querySelector('.fname').textContent = file.name;
     item.querySelector('.fname').title = file.name;
     if (reorderable) {
