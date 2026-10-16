@@ -28,6 +28,8 @@ The responsive workspace includes tool search (press `/`), category filters,
 list and block layouts, keyboard-accessible page selection, and a compact
 navigation menu on mobile. The top-bar toggle hides or restores the desktop
 sidebar; layout and sidebar preferences are remembered in your browser.
+In Merge PDFs, use the up/down arrows beside each selected file to set the
+document order before merging. Files are combined from top to bottom.
 The About page at `/about` explains the project, file handling, and license.
 It uses a warm cream palette, fine borders, and International Klein Blue
 (`#002FA7`) for actions and selection. SF Pro is used when installed, with native

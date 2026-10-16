@@ -123,7 +123,9 @@
               <p><strong>Choose files</strong> or drop them here</p><p id="dz-hint"></p>
             </div>
             <input type="file" id="file-input" aria-label="Select documents" />
-            <div class="file-list" id="file-list"></div>
+            <p class="file-order-hint" id="file-order-hint" hidden>Use the arrows to change the merge order. Files are merged from top to bottom.</p>
+            <div class="file-list" id="file-list" role="list" aria-label="Selected files"></div>
+            <span class="sr-only" id="file-order-status" role="status" aria-live="polite" aria-atomic="true"></span>
             <div id="preview-area">
               <div class="preview-bar"><span id="preview-label" role="status"></span><span class="select-hint" id="select-hint">Select pages to rotate</span><div class="preview-actions"><button id="select-all-btn">Select all</button><button id="clear-sel-btn">Clear</button></div></div>
               <div id="preview-loading" class="preview-loading" style="display:none" role="status"><span class="spinner dark" aria-hidden="true"></span>Preparing your preview…</div>

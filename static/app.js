@@ -12,6 +12,8 @@ const ICONS = {
   file: '<path d="M6 3h8l4 4v14H6zM14 3v5h4M9 12h6m-6 4h4"/>',
   arrow: '<path d="M5 12h14m-5-5 5 5-5 5"/>',
   close: '<path d="m6 6 12 12M6 18 18 6"/>',
+  up: '<path d="M12 20V4m-6 6 6-6 6 6"/>',
+  down: '<path d="M12 4v16m-6-6 6 6 6-6"/>',
 };
 const icon = name => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]}</svg>`;
 const GROUPS = [
@@ -212,7 +214,7 @@ function openTool(tool, updateHistory = true, moveFocus = true) {
   updateUploadHint();
   document.querySelectorAll('[id^="opt-"]').forEach(el => el.style.display = 'none');
   $(tool.optionsPanel).style.display = '';
-  $('opt-none').textContent = tool.id === 'merge' ? 'Add at least two PDFs. They will be combined in the order shown below the upload area.' : 'Add your images in the order you want them to appear. Each image becomes one page.';
+  $('opt-none').textContent = tool.id === 'merge' ? 'Add at least two PDFs. Files will be merged from top to bottom in the order shown.' : 'Add your images in the order you want them to appear. Each image becomes one page.';
   $('output-format').textContent = tool.resultFilename.endsWith('.zip') ? 'ZIP archive' : 'PDF document';
   const selectable = tool.preview === 'selectable';
   $('select-hint').style.display = selectable ? 'inline' : 'none';
@@ -330,18 +332,61 @@ async function refreshPreviews() {
   }
 }
 
+function updateFileOrderControls() {
+  document.querySelectorAll('.file-order-button').forEach(button => {
+    const index = Number(button.closest('.file-item').dataset.index);
+    button.disabled = processing || (button.dataset.fileAction === 'up' ? index === 0 : index === selectedFiles.length - 1);
+  });
+}
+
+function moveFile(index, direction) {
+  if (processing || currentTool?.id !== 'merge') return;
+  const target = index + direction;
+  if (index < 0 || index >= selectedFiles.length || target < 0 || target >= selectedFiles.length) return;
+  const [file] = selectedFiles.splice(index, 1);
+  selectedFiles.splice(target, 0, file);
+  resetResult();
+  renderFileList();
+  $('file-order-status').textContent = `${file.name} moved to position ${target + 1} of ${selectedFiles.length}.`;
+  const row = $('file-list').children[target];
+  const action = direction < 0 ? 'up' : 'down';
+  const preferred = row.querySelector(`[data-file-action="${action}"]`);
+  // Keep keyboard focus on the moved file, including when it reaches an edge.
+  (preferred.disabled ? row.querySelector('.file-order-button:not(:disabled)') : preferred)?.focus({ preventScroll: true });
+}
+
 function renderFileList() {
+  const focused = document.activeElement;
+  const focusIndex = focused.closest('.file-item')?.dataset.index;
+  const focusAction = focused.dataset.fileAction;
+  const reorderable = currentTool?.id === 'merge';
   $('file-list').replaceChildren();
+  $('file-order-hint').hidden = !reorderable || selectedFiles.length < 2;
+  if (!reorderable || !selectedFiles.length) $('file-order-status').textContent = '';
   $('drop-zone').classList.toggle('has-files', selectedFiles.length > 0);
   $('file-count').textContent = selectedFiles.length ? `${String(selectedFiles.length).padStart(2, '0')} selected · ${formatBytes(selectedFiles.reduce((sum, file) => sum + file.size, 0))}` : 'No files selected';
   selectedFiles.forEach((file, index) => {
     const item = document.createElement('div');
-    item.className = 'file-item';
-    item.innerHTML = `<div class="file-thumb-placeholder">${icon('file')}</div><span class="fname"></span><span class="fsize">${formatBytes(file.size)}</span><button class="remove-file" type="button">${icon('close')}</button>`;
+    item.className = 'file-item' + (reorderable ? ' is-reorderable' : '');
+    item.dataset.index = index;
+    item.setAttribute('role', 'listitem');
+    item.innerHTML = `${reorderable ? '<span class="file-position" aria-hidden="true"></span>' : ''}<div class="file-thumb-placeholder">${icon('file')}</div><span class="fname"></span><span class="fsize">${formatBytes(file.size)}</span>${reorderable ? `<div class="file-order-controls" role="group"><button class="file-order-button" data-file-action="up" type="button">${icon('up')}</button><button class="file-order-button" data-file-action="down" type="button">${icon('down')}</button></div>` : ''}<button class="remove-file" data-file-action="remove" type="button">${icon('close')}</button>`;
     item.querySelector('.fname').textContent = file.name;
+    item.querySelector('.fname').title = file.name;
+    if (reorderable) {
+      item.querySelector('.file-position').textContent = String(index + 1).padStart(2, '0');
+      item.querySelector('.file-order-controls').setAttribute('aria-label', `Reorder ${file.name}`);
+      for (const [action, direction] of [['up', -1], ['down', 1]]) {
+        const button = item.querySelector(`[data-file-action="${action}"]`);
+        const label = `Move ${file.name} ${action}`;
+        button.setAttribute('aria-label', label);
+        button.title = label;
+        button.addEventListener('click', () => moveFile(index, direction));
+      }
+    }
     const thumb = previewData.get(file)?.thumbnails?.[0];
-    if (thumb) { const img = document.createElement('img'); img.className = 'file-thumb'; img.src = thumb; img.alt = ''; item.firstChild.replaceWith(img); }
-    const remove = item.querySelector('button');
+    if (thumb) { const img = document.createElement('img'); img.className = 'file-thumb'; img.src = thumb; img.alt = ''; item.querySelector('.file-thumb-placeholder').replaceWith(img); }
+    const remove = item.querySelector('.remove-file');
     remove.setAttribute('aria-label', `Remove ${file.name}`);
     remove.disabled = processing;
     remove.addEventListener('click', () => {
@@ -353,11 +398,17 @@ function renderFileList() {
       resetResult();
       renderFileList();
       refreshPreviews();
-      const remaining = $('file-list').querySelectorAll('button');
+      const remaining = $('file-list').querySelectorAll('.remove-file');
       (remaining[Math.min(index, remaining.length - 1)] || $('drop-zone')).focus();
     });
     $('file-list').append(item);
   });
+  updateFileOrderControls();
+  // Preview responses replace the rows; preserve the control being used.
+  if (focusIndex !== undefined && ['up', 'down', 'remove'].includes(focusAction)) {
+    const control = $('file-list').children[Number(focusIndex)]?.querySelector(`[data-file-action="${focusAction}"]`);
+    if (control && !control.disabled) control.focus({ preventScroll: true });
+  }
   updateProcessButton();
 }
 
@@ -452,6 +503,7 @@ function resetPreview() {
 function setBusy(busy) {
   processing = busy;
   document.querySelectorAll('.nav-item, .brand, .back-btn, .remove-file, .preview-actions button, .workspace-right input, .workspace-right select').forEach(control => control.disabled = busy);
+  updateFileOrderControls();
   for (const link of [$('nav-about'), $('footer-about')]) {
     if (busy) { link.setAttribute('aria-disabled', 'true'); link.tabIndex = -1; }
     else { link.removeAttribute('aria-disabled'); link.removeAttribute('tabindex'); }
