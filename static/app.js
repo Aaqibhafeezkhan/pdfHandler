@@ -23,7 +23,7 @@ const GROUPS = [
 ];
 const TOOLS = [
   { id: 'merge', title: 'Merge PDFs', desc: 'Bring multiple PDFs together in one document.', category: 'organize', format: 'PDF → PDF', multiple: true, accept: '.pdf', resultFilename: 'merged.pdf', optionsPanel: 'opt-none', preview: 'per-file', action: 'Merge PDFs' },
-  { id: 'split', title: 'Split PDF', desc: 'Give every page its own place.', category: 'organize', format: 'PDF → ZIP', multiple: false, accept: '.pdf', resultFilename: 'split.zip', optionsPanel: 'opt-split', preview: 'full', action: 'Split PDF' },
+  { id: 'split', title: 'Split PDF', desc: 'Split by page count or choose your own ranges.', category: 'organize', format: 'PDF → ZIP', multiple: false, accept: '.pdf', resultFilename: 'split.zip', optionsPanel: 'opt-split', preview: 'full', action: 'Split PDF' },
   { id: 'compress', title: 'Compress PDF', desc: 'A smaller file. The same story.', category: 'organize', format: 'PDF → PDF', multiple: false, accept: '.pdf', resultFilename: 'compressed.pdf', optionsPanel: 'opt-compress', preview: 'full', action: 'Compress PDF' },
   { id: 'rotate', title: 'Rotate PDF', desc: 'Put a different perspective on your pages.', category: 'organize', format: 'PDF → PDF', multiple: false, accept: '.pdf', resultFilename: 'rotated.pdf', optionsPanel: 'opt-rotate', preview: 'selectable', action: 'Rotate PDF' },
   { id: 'pdf-to-image', title: 'PDF to Image', desc: 'Turn your pages into PNG or JPG images.', category: 'convert', format: 'PDF → IMG', multiple: false, accept: '.pdf', resultFilename: 'images.zip', optionsPanel: 'opt-pdf-to-image', preview: 'full', action: 'Convert to images' },
@@ -221,6 +221,7 @@ function openTool(tool, updateHistory = true, moveFocus = true) {
   $('select-all-btn').style.display = $('clear-sel-btn').style.display = selectable ? 'inline-block' : 'none';
   renderFileList();
   resetPreview();
+  if (tool.id === 'split') updateSplitOptions();
   setNavigation(tool.id);
   if (updateHistory) recordView('tool', tool.id);
   window.scrollTo(0, 0);
@@ -299,6 +300,7 @@ async function addFiles(files) {
   if (!currentTool.multiple) { previewData.clear(); selectedPages.clear(); $('rotate-pages').value = 'all'; }
   resetResult();
   renderFileList();
+  if (currentTool.id === 'split') updateSplitHighlight();
   await refreshPreviews();
 }
 
@@ -528,13 +530,43 @@ function syncPageSelection() {
   $('rotate-pages').value = selectedPages.size ? [...selectedPages].sort((a, b) => a - b).join(',') : 'all';
 }
 
+function updateSplitOptions() {
+  const ranges = $('split-mode').value === 'ranges';
+  $('split-span-options').hidden = ranges;
+  $('split-range-options').hidden = !ranges;
+  $('split-span').disabled = processing || ranges;
+  $('split-pages').disabled = processing || !ranges;
+  updateSplitHighlight();
+}
+
+function readSplitRanges() {
+  const parts = $('split-pages').value.split(',').map(part => part.trim());
+  const pageCount = previewData.get(selectedFiles[0])?.pageCount;
+  let message = '';
+  const ranges = parts.map(part => part.split('-').map(Number));
+  if (parts.length > 1000) message = 'Use at most 1,000 page ranges.';
+  else if (parts.some((part, i) => !/^\d{1,6}(-\d{1,6})?$/.test(part) || ranges[i][0] < 1 || (ranges[i][1] ?? ranges[i][0]) < ranges[i][0])) {
+    message = 'Use page numbers or ascending ranges, for example 1,3,6-7.';
+  } else if (pageCount && ranges.some(bounds => (bounds[1] ?? bounds[0]) > pageCount)) {
+    message = `This PDF has ${pageCount} pages. Choose pages within that range.`;
+  }
+  $('split-pages').setCustomValidity(message);
+  return message ? [] : ranges.map(([first, last = first]) => [first, last]);
+}
+
 function updateSplitHighlight() {
+  if (currentTool?.id !== 'split') return;
+  const custom = $('split-mode').value === 'ranges';
+  const ranges = custom ? readSplitRanges() : [];
   const span = Math.max(1, Number($('split-span').value) || 1);
   document.querySelectorAll('.thumb[data-page]').forEach(thumb => {
-    const group = Math.floor((Number(thumb.dataset.page) - 1) / span);
-    thumb.classList.toggle('split-group-a', group % 2 === 0);
-    thumb.classList.toggle('split-group-b', group % 2 !== 0);
-    thumb.title = `Page ${thumb.dataset.page} · output file ${group + 1}`;
+    const page = Number(thumb.dataset.page);
+    const groups = custom ? ranges.flatMap(([first, last], i) => page >= first && page <= last ? [i] : []) : [Math.floor((page - 1) / span)];
+    const included = groups.length > 0;
+    thumb.classList.toggle('split-group-a', included && groups[0] % 2 === 0);
+    thumb.classList.toggle('split-group-b', included && groups[0] % 2 !== 0);
+    thumb.classList.toggle('split-excluded', custom && !included);
+    thumb.title = `Page ${page} · ${included ? `output file${groups.length > 1 ? 's' : ''} ${groups.map(group => group + 1).join(', ')}` : 'not included'}`;
   });
 }
 
@@ -553,6 +585,7 @@ function resetPreview() {
 function setBusy(busy) {
   processing = busy;
   document.querySelectorAll('.nav-item, .brand, .back-btn, .remove-file, .preview-actions button, .workspace-right input, .workspace-right select').forEach(control => control.disabled = busy);
+  if (currentTool?.id === 'split') updateSplitOptions();
   updateFileOrderControls();
   for (const link of [$('nav-about'), $('footer-about')]) {
     if (busy) { link.setAttribute('aria-disabled', 'true'); link.tabIndex = -1; }
@@ -566,12 +599,13 @@ function setBusy(busy) {
 
 async function processFiles() {
   if (!currentTool || $('process-btn').disabled) return;
+  if (currentTool.id === 'split') updateSplitHighlight();
   const visibleInputs = $(currentTool.optionsPanel).querySelectorAll('input, select');
   for (const input of visibleInputs) if (!input.reportValidity()) return;
   const fd = new FormData();
   selectedFiles.forEach(file => fd.append(currentTool.multiple ? 'files[]' : 'file', file));
   const fields = {
-    split: { span: 'split-span' }, compress: { quality: 'compress-quality' },
+    split: $('split-mode').value === 'ranges' ? { pages: 'split-pages' } : { span: 'split-span' }, compress: { quality: 'compress-quality' },
     rotate: { degrees: 'rotate-degrees', pages: 'rotate-pages' },
     'pdf-to-image': { format: 'pti-format', dpi: 'pti-dpi' },
     protect: { password: 'protect-password' }, unlock: { password: 'unlock-password' },
@@ -650,7 +684,8 @@ $('drop-zone').addEventListener('drop', event => { event.preventDefault(); $('dr
 $('file-input').addEventListener('change', () => { addFiles([...$('file-input').files]); $('file-input').value = ''; });
 $('select-all-btn').addEventListener('click', () => { document.querySelectorAll('.thumb.selectable').forEach(thumb => selectedPages.add(Number(thumb.dataset.page))); syncPageSelection(); });
 $('clear-sel-btn').addEventListener('click', () => { selectedPages.clear(); syncPageSelection(); });
-$('split-span').addEventListener('input', updateSplitHighlight);
+$('split-mode').addEventListener('change', () => { resetResult(); updateSplitOptions(); });
+for (const id of ['split-span', 'split-pages']) $(id).addEventListener('input', () => { resetResult(); updateSplitHighlight(); });
 $('rotate-pages').addEventListener('input', () => {
   selectedPages.clear();
   const value = $('rotate-pages').value.trim();

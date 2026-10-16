@@ -202,7 +202,7 @@ and a cleanup job. Streaming is simpler and keeps files entirely in-memory.
 | Endpoint | Form fields | Returns |
 |---|---|---|
 | `POST /api/merge` | `files[]` (2+ PDFs) | `merged.pdf` |
-| `POST /api/split` | `file` (1 PDF), `span` (int, pages per chunk) | `split.zip` |
+| `POST /api/split` | `file` (1 PDF), either `span` (pages per chunk) or `pages` (`1,3,6-7`, one PDF per entry) | `split.zip` |
 | `POST /api/compress` | `file` (1 PDF), `quality` (screen/ebook/printer/prepress) | `compressed.pdf` |
 | `POST /api/rotate` | `file` (1 PDF), `degrees` (90/180/270), `pages` (all or "1,3,5") | `rotated.pdf` |
 | `POST /api/pdf-to-image` | `file` (1 PDF), `format` (png/jpg), `dpi` (72/150/300) | `images.zip` |

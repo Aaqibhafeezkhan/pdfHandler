@@ -15,7 +15,7 @@ Built for a homelab Kubernetes cluster, but it runs anywhere Docker does.
 | Operation | What it does |
 |---|---|
 | **Merge** | Combine several PDFs into one |
-| **Split** | Break a PDF into chunks of N pages, returned as a zip |
+| **Split** | Split by page count or custom ranges such as `1,3,6-7`, returned as a zip |
 | **Compress** | Shrink a PDF at four quality levels (screen → prepress) |
 | **Rotate** | Turn all pages or a selection by a multiple of 90° |
 | **PDF → image** | Render pages to PNG or JPG at 72/150/300 dpi, returned as a zip |
@@ -30,6 +30,10 @@ navigation menu on mobile. The top-bar toggle hides or restores the desktop
 sidebar; layout and sidebar preferences are remembered in your browser.
 In Merge PDFs, use the up/down arrows beside each selected file to set the
 document order before merging. Files are combined from top to bottom.
+In Split PDF, choose **Custom page ranges** and enter `1,3,6-7` to create three
+PDFs: page 1, page 3, and pages 6–7 together. Each comma-separated entry creates
+one PDF, in the entered order; unlisted pages are excluded. Overlapping or
+repeated entries create separate files. The preview highlights included pages.
 The About page at `/about` explains the project, file handling, and license.
 It uses a warm cream palette, fine borders, and International Klein Blue
 (`#002FA7`) for actions and selection. SF Pro is used when installed, with native
@@ -160,7 +164,7 @@ an attachment, except `/api/preview` (JSON). Configuration and health use GET.
 |---|---|---|
 | `GET /api/config` | — | JSON: `maxUploadBytes` (active request body limit) |
 | `POST /api/merge` | `files[]` (2–50 PDFs) | `merged.pdf` |
-| `POST /api/split` | `file`, `span` (pages per chunk) | `split.zip` |
+| `POST /api/split` | `file`, either `span` (pages per chunk, default 1) or `pages` (`1,3,6-7`; one PDF per entry, max 1,000 entries) | `split.zip` |
 | `POST /api/compress` | `file`, `quality` (`screen`\|`ebook`\|`printer`\|`prepress`) | `compressed.pdf` |
 | `POST /api/rotate` | `file`, `degrees` (multiple of 90), `pages` (`all` or `1,3,5-7`) | `rotated.pdf` |
 | `POST /api/pdf-to-image` | `file`, `format` (`png`\|`jpg`), `dpi` (`72`\|`150`\|`300`) | `images.zip` |
@@ -178,6 +182,9 @@ curl -F "files[]=@a.pdf" -F "files[]=@b.pdf" \
 
 curl -F "file=@big.pdf" -F "quality=screen" \
      -o small.pdf http://localhost:8080/api/compress
+
+curl -F "file=@big.pdf" -F "pages=1,3,6-7" \
+     -o split.zip http://localhost:8080/api/split
 ```
 
 ## Security

@@ -15,7 +15,7 @@ import (
 const maxPageSelectors = 1000
 
 // pageSelector matches a single page ("7") or an inclusive range ("2-9"),
-// which is all this endpoint accepts in the pages field.
+// shared by the rotate and split page-selection fields.
 var pageSelector = regexp.MustCompile(`^\d{1,6}(-\d{1,6})?$`)
 
 func Rotate(c *gin.Context) {
