@@ -69,6 +69,23 @@ Or build the container, which bundles both tools:
 docker build -t pdfhandler .
 ```
 
+### Docker Hub overview
+
+The [Docker Hub repository](https://hub.docker.com/r/r4faelrs/pdfhandler) uses this
+README as its overview. The
+[overview workflow](.github/workflows/dockerhub-description.yml) syncs it when
+this file or the workflow changes on `main`; it can also be run manually from
+GitHub Actions by selecting **Update Docker Hub overview → Run workflow** on
+`main`. Relative image and documentation links are converted to GitHub URLs.
+
+Maintainers must configure two GitHub Actions repository secrets under
+**Settings → Secrets and variables → Actions**: `DOCKERHUB_USERNAME` (the Docker
+Hub account with permission to update `r4faelrs/pdfhandler`) and `DOCKERHUB_TOKEN`
+(a personal access token with Read, Write, Delete permissions, as required by the
+[sync action](https://github.com/peter-evans/dockerhub-description#action-inputs)).
+After adding the secrets, run the workflow once to populate an empty overview.
+This workflow updates repository text only; it does not build or push images.
+
 ## Testing
 
 Two layers, both run by [CI](.github/workflows/ci.yml) on every push and pull
