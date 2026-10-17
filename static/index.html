@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#faf9f6" />
-  <meta name="description" content="A quiet workspace for your documents. Eight self-hosted PDF tools, with files processed on your own server." />
+  <meta name="description" content="A quiet workspace for your documents. Nine self-hosted PDF tools, with files processed on your own server." />
   <title>PDF Handler — The document workspace</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='5' fill='%23252620'/%3E%3Cpath d='M10 7h8l5 5v13H10zM18 7v6h5M13 17h7M13 21h5' fill='none' stroke='%23faf9f6' stroke-width='1.5'/%3E%3C/svg%3E" />
   <link rel="stylesheet" href="/static/styles.css" />
@@ -20,7 +20,7 @@
     </button>
     <button class="menu-toggle" id="menu-toggle" aria-label="Toggle tool navigation" aria-expanded="false" aria-controls="sidebar-nav"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg></button>
     <nav class="sidebar-nav" id="sidebar-nav" aria-label="PDF tools">
-      <button class="nav-item" id="nav-overview" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg>All tools<span class="nav-count">08</span></button>
+      <button class="nav-item" id="nav-overview" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg>All tools<span class="nav-count">09</span></button>
       <div id="tool-navigation"></div>
       <div class="nav-secondary"><a class="nav-item" id="nav-about" href="/about" data-page="about"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 11v6m0-10v.01"/></svg>About PDF Handler</a></div>
     </nav>
@@ -48,7 +48,7 @@
         <div class="home-layout">
           <div class="catalog">
             <div class="catalog-toolbar">
-              <h2 class="catalog-title">The toolkit <span id="tool-count">/ 08</span></h2>
+              <h2 class="catalog-title">The toolkit <span id="tool-count">/ 09</span></h2>
               <label class="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg><input id="tool-search" type="search" placeholder="Find a tool…" aria-label="Find a tool" autocomplete="off" /><kbd aria-hidden="true">/</kbd></label>
             </div>
             <div class="catalog-controls">
@@ -92,17 +92,17 @@
           <div class="about-story">
             <p class="eyebrow">01 / The idea</p>
             <h2>A workspace that stays yours.</h2>
-            <p>PDF Handler brings eight focused document tools into one quiet workspace. Merge a report, split a long document, compress an attachment, or put a page the right way up.</p>
+            <p>PDF Handler brings nine focused document tools into one quiet workspace. Merge a report, split a long document, cut selected pages into one PDF, compress an attachment, or put a page the right way up.</p>
             <p>Originally built for a homelab, it runs on your own infrastructure. One small application serves the tools and the interface, with no accounts to create or external services to connect.</p>
             <div class="about-principles">
-              <div class="about-principle"><span class="about-number">01</span><div><h3>Everyday work, covered.</h3><p>Merge, split, compress, rotate, convert images, protect, and unlock. Each tool does one useful job.</p></div></div>
+              <div class="about-principle"><span class="about-number">01</span><div><h3>Everyday work, covered.</h3><p>Merge, split, cut, compress, rotate, convert images, protect, and unlock. Each tool does one useful job.</p></div></div>
               <div class="about-principle"><span class="about-number">02</span><div><h3>Your infrastructure. Your control.</h3><p>Documents are processed by the server running this instance. You choose where that server lives and who can reach it.</p></div></div>
               <div class="about-principle"><span class="about-number">03</span><div><h3>Only here while you need it.</h3><p>Uploaded files are handled in temporary storage and deleted when the request completes. Save the result wherever you keep your documents.</p></div></div>
             </div>
           </div>
           <aside class="about-details" aria-label="Project details">
             <p class="eyebrow">02 / At a glance</p>
-            <dl class="about-facts"><div><dt>Toolkit</dt><dd>8 PDF tools</dd></div><div><dt>Upload limit</dt><dd><span data-upload-limit>Loading…</span> / request</dd></div><div><dt>Hosting</dt><dd>Your own server</dd></div><div><dt>License</dt><dd>MIT · open source</dd></div></dl>
+            <dl class="about-facts"><div><dt>Toolkit</dt><dd>9 PDF tools</dd></div><div><dt>Upload limit</dt><dd><span data-upload-limit>Loading…</span> / request</dd></div><div><dt>Hosting</dt><dd>Your own server</dd></div><div><dt>License</dt><dd>MIT · open source</dd></div></dl>
             <div class="about-credits"><h2>Made to be yours.</h2><p>Created by Rafael Silva. Open source, so you can inspect it, adapt it, and run it on your terms.</p><a class="about-source" href="https://github.com/rafaelsilvabr/pdfHandler" target="_blank" rel="noopener noreferrer">Explore the project<span class="sr-only"> (opens in a new tab)</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg></a></div>
             <button class="btn btn-primary" id="about-tools-btn" type="button">Back to the toolkit<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg></button>
           </aside>
@@ -139,6 +139,7 @@
               <div id="split-span-options" class="option-group" style="margin-top:18px"><label for="split-span">Pages per file</label><input type="number" id="split-span" value="1" min="1" max="10000" required /><span class="option-hint">Each group becomes a separate PDF. Alternating borders show the groups.</span></div>
               <div id="split-range-options" class="option-group" style="margin-top:18px" hidden><label for="split-pages">Pages and ranges</label><input type="text" id="split-pages" placeholder="1,3,6-7" maxlength="14000" required disabled aria-describedby="split-pages-hint" /><span class="option-hint" id="split-pages-hint">Separate entries with commas. For example, 1,3,6-7 creates three PDFs: page 1, page 3, and pages 6–7 together. Other pages are excluded.</span></div>
             </div>
+            <div id="opt-cut" class="option-group" style="display:none"><label for="cut-pages">Pages to keep</label><input type="text" id="cut-pages" placeholder="1,3,6-7" maxlength="14000" required aria-describedby="cut-pages-hint" /><span class="option-hint" id="cut-pages-hint">Keep the selected pages in one PDF, in the order entered. For example, 1,3,6-7 creates a four-page PDF containing pages 1, 3, 6, and 7. Other pages are excluded.</span></div>
             <div id="opt-compress" class="option-group" style="display:none"><label for="compress-quality">Quality</label><select id="compress-quality"><option value="screen">Screen · 72 dpi / smallest</option><option value="ebook" selected>eBook · 150 dpi / balanced</option><option value="printer">Printer · 300 dpi / high</option><option value="prepress">Prepress · 300 dpi / best</option></select><span class="option-hint">Lower quality creates a smaller file.</span></div>
             <div id="opt-rotate" style="display:none"><div class="option-group"><label for="rotate-degrees">Rotation</label><select id="rotate-degrees"><option value="90">90° clockwise</option><option value="180">180°</option><option value="270">270° counterclockwise</option></select></div><div class="option-group" style="margin-top:18px"><label for="rotate-pages">Pages</label><input type="text" id="rotate-pages" value="all" placeholder="all, or 1,3,5-7" /><span class="option-hint">Enter a range or select pages in the preview.</span></div></div>
             <div id="opt-pdf-to-image" style="display:none"><div class="option-group"><label for="pti-format">Image format</label><select id="pti-format"><option value="png">PNG</option><option value="jpg">JPG</option></select></div><div class="option-group" style="margin-top:18px"><label for="pti-dpi">Resolution</label><select id="pti-dpi"><option value="72">72 dpi · screen</option><option value="150" selected>150 dpi · balanced</option><option value="300">300 dpi · print</option></select></div></div>

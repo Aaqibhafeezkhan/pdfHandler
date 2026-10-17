@@ -49,6 +49,7 @@ func newRouter() (*gin.Engine, error) {
 		})
 		api.POST("/merge", handlers.Merge)
 		api.POST("/split", handlers.Split)
+		api.POST("/cut", handlers.Cut)
 		api.POST("/compress", handlers.Compress)
 		api.POST("/rotate", handlers.Rotate)
 		api.POST("/pdf-to-image", handlers.PDFToImage)

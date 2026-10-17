@@ -16,6 +16,7 @@ Built for a homelab Kubernetes cluster, but it runs anywhere Docker does.
 |---|---|
 | **Merge** | Combine several PDFs into one |
 | **Split** | Split by page count or custom ranges such as `1,3,6-7`, returned as a zip |
+| **Cut** | Keep pages such as `1,3,6-7` together in a single PDF |
 | **Compress** | Shrink a PDF at four quality levels (screen → prepress) |
 | **Rotate** | Turn all pages or a selection by a multiple of 90° |
 | **PDF → image** | Render pages to PNG or JPG at 72/150/300 dpi, returned as a zip |
@@ -34,6 +35,10 @@ In Split PDF, choose **Custom page ranges** and enter `1,3,6-7` to create three
 PDFs: page 1, page 3, and pages 6–7 together. Each comma-separated entry creates
 one PDF, in the entered order; unlisted pages are excluded. Overlapping or
 repeated entries create separate files. The preview highlights included pages.
+In Cut PDF, the same `1,3,6-7` selection produces a single four-page `cut.pdf`
+containing pages 1, 3, 6, and 7. The entered order is preserved, and repeated
+pages are included again. Both tools accept up to 1,000 entries; Cut PDF also
+limits the output to 10,000 pages.
 The About page at `/about` explains the project, file handling, and license.
 It uses a warm cream palette, fine borders, and International Klein Blue
 (`#002FA7`) for actions and selection. SF Pro is used when installed, with native
@@ -165,6 +170,7 @@ an attachment, except `/api/preview` (JSON). Configuration and health use GET.
 | `GET /api/config` | — | JSON: `maxUploadBytes` (active request body limit) |
 | `POST /api/merge` | `files[]` (2–50 PDFs) | `merged.pdf` |
 | `POST /api/split` | `file`, either `span` (pages per chunk, default 1) or `pages` (`1,3,6-7`; one PDF per entry, max 1,000 entries) | `split.zip` |
+| `POST /api/cut` | `file`, `pages` (`1,3,6-7`; required, up to 1,000 entries and 10,000 output pages) | `cut.pdf` |
 | `POST /api/compress` | `file`, `quality` (`screen`\|`ebook`\|`printer`\|`prepress`) | `compressed.pdf` |
 | `POST /api/rotate` | `file`, `degrees` (multiple of 90), `pages` (`all` or `1,3,5-7`) | `rotated.pdf` |
 | `POST /api/pdf-to-image` | `file`, `format` (`png`\|`jpg`), `dpi` (`72`\|`150`\|`300`) | `images.zip` |
@@ -185,6 +191,9 @@ curl -F "file=@big.pdf" -F "quality=screen" \
 
 curl -F "file=@big.pdf" -F "pages=1,3,6-7" \
      -o split.zip http://localhost:8080/api/split
+
+curl -F "file=@big.pdf" -F "pages=1,3,6-7" \
+     -o cut.pdf http://localhost:8080/api/cut
 ```
 
 ## Security
@@ -224,7 +233,7 @@ code outside the standard library.
 ## How it works
 
 Gin routes both the API and the static UI from a single binary. Operations that
-pdfcpu handles natively (merge, split, rotate, encrypt, image import) run
+pdfcpu handles natively (merge, split, cut, rotate, encrypt, image import) run
 in-process; compression shells out to ghostscript and rasterisation to poppler's
 `pdftoppm`, since neither has a good pure-Go equivalent.
 

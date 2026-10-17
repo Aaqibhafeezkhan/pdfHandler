@@ -3,6 +3,7 @@
 const ICONS = {
   merge: '<path d="M7 3v4c0 4 10 4 10 8v6M17 3v4c0 4-10 4-10 8v6M4 18l3 3 3-3m4 0 3 3 3-3"/>',
   split: '<path d="M12 21v-6c0-4-7-4-7-8V3m7 12c0-4 7-4 7-8V3M2 6l3-3 3 3m8 0 3-3 3 3"/>',
+  cut: '<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="m8 8 12 12M8 16 20 4"/>',
   compress: '<path d="M4 9h6V3m0 6L3 2m17 13h-6v6m0-6 7 7M16 3h5v5M3 16v5h5"/>',
   rotate: '<path d="M19 8a8 8 0 1 0 1 8M19 3v5h-5"/><rect x="9" y="9" width="6" height="8" rx="1"/>',
   'pdf-to-image': '<path d="M4 9V3h10l4 4v5M14 3v5h4"/><rect x="8" y="12" width="13" height="9" rx="1"/><path d="m9 20 4-4 3 3 2-2 3 3M3 13v7m-2-2 2 2 2-2M17 15h.01"/>',
@@ -24,6 +25,7 @@ const GROUPS = [
 const TOOLS = [
   { id: 'merge', title: 'Merge PDFs', desc: 'Bring multiple PDFs together in one document.', category: 'organize', format: 'PDF → PDF', multiple: true, accept: '.pdf', resultFilename: 'merged.pdf', optionsPanel: 'opt-none', preview: 'per-file', action: 'Merge PDFs' },
   { id: 'split', title: 'Split PDF', desc: 'Split by page count or choose your own ranges.', category: 'organize', format: 'PDF → ZIP', multiple: false, accept: '.pdf', resultFilename: 'split.zip', optionsPanel: 'opt-split', preview: 'full', action: 'Split PDF' },
+  { id: 'cut', title: 'Cut PDF', desc: 'Keep selected pages together in one PDF.', category: 'organize', format: 'PDF → PDF', multiple: false, accept: '.pdf', resultFilename: 'cut.pdf', optionsPanel: 'opt-cut', preview: 'full', action: 'Cut PDF' },
   { id: 'compress', title: 'Compress PDF', desc: 'A smaller file. The same story.', category: 'organize', format: 'PDF → PDF', multiple: false, accept: '.pdf', resultFilename: 'compressed.pdf', optionsPanel: 'opt-compress', preview: 'full', action: 'Compress PDF' },
   { id: 'rotate', title: 'Rotate PDF', desc: 'Put a different perspective on your pages.', category: 'organize', format: 'PDF → PDF', multiple: false, accept: '.pdf', resultFilename: 'rotated.pdf', optionsPanel: 'opt-rotate', preview: 'selectable', action: 'Rotate PDF' },
   { id: 'pdf-to-image', title: 'PDF to Image', desc: 'Turn your pages into PNG or JPG images.', category: 'convert', format: 'PDF → IMG', multiple: false, accept: '.pdf', resultFilename: 'images.zip', optionsPanel: 'opt-pdf-to-image', preview: 'full', action: 'Convert to images' },
@@ -222,6 +224,7 @@ function openTool(tool, updateHistory = true, moveFocus = true) {
   renderFileList();
   resetPreview();
   if (tool.id === 'split') updateSplitOptions();
+  if (tool.id === 'cut') updateCutHighlight();
   setNavigation(tool.id);
   if (updateHistory) recordView('tool', tool.id);
   window.scrollTo(0, 0);
@@ -301,6 +304,7 @@ async function addFiles(files) {
   resetResult();
   renderFileList();
   if (currentTool.id === 'split') updateSplitHighlight();
+  if (currentTool.id === 'cut') updateCutHighlight();
   await refreshPreviews();
 }
 
@@ -512,6 +516,7 @@ function renderThumbnails(data) {
     $('thumbs-grid').append(thumb);
   });
   if (currentTool.id === 'split') updateSplitHighlight();
+  if (currentTool.id === 'cut') updateCutHighlight();
 }
 
 function togglePage(page) {
@@ -539,8 +544,8 @@ function updateSplitOptions() {
   updateSplitHighlight();
 }
 
-function readSplitRanges() {
-  const parts = $('split-pages').value.split(',').map(part => part.trim());
+function readPageRanges(input, maxPages = Infinity) {
+  const parts = input.value.split(',').map(part => part.trim());
   const pageCount = previewData.get(selectedFiles[0])?.pageCount;
   let message = '';
   const ranges = parts.map(part => part.split('-').map(Number));
@@ -549,15 +554,17 @@ function readSplitRanges() {
     message = 'Use page numbers or ascending ranges, for example 1,3,6-7.';
   } else if (pageCount && ranges.some(bounds => (bounds[1] ?? bounds[0]) > pageCount)) {
     message = `This PDF has ${pageCount} pages. Choose pages within that range.`;
+  } else if (ranges.reduce((total, [first, last = first]) => total + last - first + 1, 0) > maxPages) {
+    message = `The output is limited to ${maxPages.toLocaleString('en-US')} pages.`;
   }
-  $('split-pages').setCustomValidity(message);
+  input.setCustomValidity(message);
   return message ? [] : ranges.map(([first, last = first]) => [first, last]);
 }
 
 function updateSplitHighlight() {
   if (currentTool?.id !== 'split') return;
   const custom = $('split-mode').value === 'ranges';
-  const ranges = custom ? readSplitRanges() : [];
+  const ranges = custom ? readPageRanges($('split-pages')) : [];
   const span = Math.max(1, Number($('split-span').value) || 1);
   document.querySelectorAll('.thumb[data-page]').forEach(thumb => {
     const page = Number(thumb.dataset.page);
@@ -567,6 +574,18 @@ function updateSplitHighlight() {
     thumb.classList.toggle('split-group-b', included && groups[0] % 2 !== 0);
     thumb.classList.toggle('split-excluded', custom && !included);
     thumb.title = `Page ${page} · ${included ? `output file${groups.length > 1 ? 's' : ''} ${groups.map(group => group + 1).join(', ')}` : 'not included'}`;
+  });
+}
+
+function updateCutHighlight() {
+  if (currentTool?.id !== 'cut') return;
+  const ranges = readPageRanges($('cut-pages'), 10000);
+  document.querySelectorAll('.thumb[data-page]').forEach(thumb => {
+    const page = Number(thumb.dataset.page);
+    const included = ranges.some(([first, last]) => page >= first && page <= last);
+    thumb.classList.toggle('selected', included);
+    thumb.classList.toggle('cut-excluded', !included);
+    thumb.title = `Page ${page} · ${included ? 'included in cut.pdf' : 'not included'}`;
   });
 }
 
@@ -600,12 +619,14 @@ function setBusy(busy) {
 async function processFiles() {
   if (!currentTool || $('process-btn').disabled) return;
   if (currentTool.id === 'split') updateSplitHighlight();
+  if (currentTool.id === 'cut') updateCutHighlight();
   const visibleInputs = $(currentTool.optionsPanel).querySelectorAll('input, select');
   for (const input of visibleInputs) if (!input.reportValidity()) return;
   const fd = new FormData();
   selectedFiles.forEach(file => fd.append(currentTool.multiple ? 'files[]' : 'file', file));
   const fields = {
     split: $('split-mode').value === 'ranges' ? { pages: 'split-pages' } : { span: 'split-span' }, compress: { quality: 'compress-quality' },
+    cut: { pages: 'cut-pages' },
     rotate: { degrees: 'rotate-degrees', pages: 'rotate-pages' },
     'pdf-to-image': { format: 'pti-format', dpi: 'pti-dpi' },
     protect: { password: 'protect-password' }, unlock: { password: 'unlock-password' },
@@ -686,6 +707,7 @@ $('select-all-btn').addEventListener('click', () => { document.querySelectorAll(
 $('clear-sel-btn').addEventListener('click', () => { selectedPages.clear(); syncPageSelection(); });
 $('split-mode').addEventListener('change', () => { resetResult(); updateSplitOptions(); });
 for (const id of ['split-span', 'split-pages']) $(id).addEventListener('input', () => { resetResult(); updateSplitHighlight(); });
+$('cut-pages').addEventListener('input', () => { resetResult(); updateCutHighlight(); });
 $('rotate-pages').addEventListener('input', () => {
   selectedPages.clear();
   const value = $('rotate-pages').value.trim();
