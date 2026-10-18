@@ -28,6 +28,7 @@ func testRouter() *gin.Engine {
 	g := r.Group("/api")
 	g.POST("/merge", Merge)
 	g.POST("/split", Split)
+	g.POST("/cut", Cut)
 	g.POST("/compress", Compress)
 	g.POST("/rotate", Rotate)
 	g.POST("/pdf-to-image", PDFToImage)

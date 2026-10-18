@@ -71,6 +71,15 @@ echo
 echo "==> Operations"
 check "merge"          200 -F "files[]=@$WORK/a.pdf" -F "files[]=@$WORK/b.pdf" "$BASE/api/merge"
 check "split"          200 -F "file=@$WORK/a.pdf" -F "span=1"                  "$BASE/api/split"
+check "split custom ranges" 200 -F "file=@$WORK/a.pdf" -F "pages=1,2-3"        "$BASE/api/split"
+check "cut selected pages" 200 -F "file=@$WORK/a.pdf" -F "pages=1,3"           "$BASE/api/cut"
+if pdfinfo "$WORK/out" | grep -qE '^Pages:[[:space:]]+2$'; then
+  echo "  ok    cut output has exactly two pages"
+  pass=$((pass + 1))
+else
+  echo "  FAIL  cut output should have exactly two pages"
+  fail=$((fail + 1))
+fi
 check "compress"       200 -F "file=@$WORK/a.pdf" -F "quality=screen"          "$BASE/api/compress"
 check "rotate"         200 -F "file=@$WORK/a.pdf" -F "degrees=90" -F "pages=1,3" "$BASE/api/rotate"
 check "pdf-to-image"   200 -F "file=@$WORK/a.pdf" -F "format=png" -F "dpi=72"  "$BASE/api/pdf-to-image"
@@ -96,6 +105,12 @@ check "degrees not a quarter"  400 -F "file=@$WORK/a.pdf" --form-string "degrees
 check "shell chars in pages"   400 -F "file=@$WORK/a.pdf" --form-string 'pages=1;rm -rf /'  "$BASE/api/rotate"
 check "traversal in pages"     400 -F "file=@$WORK/a.pdf" --form-string 'pages=../../etc/passwd' "$BASE/api/rotate"
 check "negative span"          400 -F "file=@$WORK/a.pdf" --form-string "span=-5"           "$BASE/api/split"
+check "reversed split range"   400 -F "file=@$WORK/a.pdf" --form-string "pages=3-1"         "$BASE/api/split"
+check "split page out of range" 400 -F "file=@$WORK/a.pdf" --form-string "pages=1,4"        "$BASE/api/split"
+check "conflicting split modes" 400 -F "file=@$WORK/a.pdf" -F "pages=1" -F "span=2"         "$BASE/api/split"
+check "cut needs page selection" 400 -F "file=@$WORK/a.pdf"                                "$BASE/api/cut"
+check "cut page out of range"  400 -F "file=@$WORK/a.pdf" -F "pages=1,4"                    "$BASE/api/cut"
+check "reversed cut range"     400 -F "file=@$WORK/a.pdf" -F "pages=3-1"                    "$BASE/api/cut"
 check "missing password"       400 -F "file=@$WORK/a.pdf" --form-string "password="         "$BASE/api/protect"
 check "merge needs two files"  400 -F "files[]=@$WORK/a.pdf"                                "$BASE/api/merge"
 

@@ -81,6 +81,7 @@ Use `pdfcpu` as the primary PDF library, with ghostscript and poppler-utils as s
 |---|---|---|
 | Merge | `pdfcpu` | Pure Go, no subprocess needed |
 | Split | `pdfcpu` | Pure Go, no subprocess needed |
+| Cut | `pdfcpu` | Collect selected pages into one PDF, preserving entered order |
 | Rotate | `pdfcpu` | Pure Go, no subprocess needed |
 | Protect (encrypt) | `pdfcpu` | Pure Go, AES-256 encryption |
 | Unlock (decrypt) | `pdfcpu` | Pure Go |
@@ -122,7 +123,7 @@ No React, no Node.js build step, no separate frontend container.
 | HTMX | Server-driven UI, minimal JS | Less familiar, adds template engine |
 
 ### Why vanilla HTML
-This is a homelab tool, not a product. The UI has 8 discrete operations with
+This is a homelab tool, not a product. The UI has 9 discrete operations with
 simple forms. Vanilla JS is sufficient and eliminates a full frontend build
 pipeline and a second container. Less moving parts = fewer failure points in K8s.
 
@@ -202,7 +203,8 @@ and a cleanup job. Streaming is simpler and keeps files entirely in-memory.
 | Endpoint | Form fields | Returns |
 |---|---|---|
 | `POST /api/merge` | `files[]` (2+ PDFs) | `merged.pdf` |
-| `POST /api/split` | `file` (1 PDF), `span` (int, pages per chunk) | `split.zip` |
+| `POST /api/split` | `file` (1 PDF), either `span` (pages per chunk) or `pages` (`1,3,6-7`, one PDF per entry) | `split.zip` |
+| `POST /api/cut` | `file` (1 PDF), `pages` (`1,3,6-7`, one combined PDF, max 10,000 output pages) | `cut.pdf` |
 | `POST /api/compress` | `file` (1 PDF), `quality` (screen/ebook/printer/prepress) | `compressed.pdf` |
 | `POST /api/rotate` | `file` (1 PDF), `degrees` (90/180/270), `pages` (all or "1,3,5") | `rotated.pdf` |
 | `POST /api/pdf-to-image` | `file` (1 PDF), `format` (png/jpg), `dpi` (72/150/300) | `images.zip` |
@@ -311,6 +313,8 @@ pdfHandler/
 │   ├── util.go              # Validation, sandboxing, error and zip helpers
 │   ├── merge.go
 │   ├── split.go
+│   ├── cut.go
+│   ├── pages.go              # Shared page range parsing and validation
 │   ├── compress.go
 │   ├── rotate.go
 │   ├── pdf_to_image.go

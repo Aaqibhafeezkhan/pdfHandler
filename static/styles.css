@@ -239,6 +239,7 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
 .thumb.selected::after { content: '✓'; position: absolute; top: 5px; right: 5px; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 3px; background: var(--primary); color: white; font-size: 10px; }
 .thumb.split-group-a { border-color: var(--primary); }
 .thumb.split-group-b { border-color: #767c69; border-style: dashed; }
+.thumb.split-excluded, .thumb.cut-excluded { opacity: .45; }
 .workspace-right { position: sticky; top: 24px; padding: 0 0 0 24px; border-left: 1px solid var(--border); display: flex; flex-direction: column; gap: 22px; }
 .workspace-right h2 { border-top: 1px solid var(--text); padding-top: 15px; font: 9px var(--mono); letter-spacing: .7px; text-transform: uppercase; }
 .option-group { display: flex; flex-direction: column; gap: 8px; }

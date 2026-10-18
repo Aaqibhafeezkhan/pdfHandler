@@ -197,7 +197,7 @@ func TestConfiguredUploadLimitAcrossHandlers(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, operation := range []string{"merge", "split", "compress", "rotate", "pdf-to-image", "image-to-pdf", "protect", "unlock", "preview"} {
+	for _, operation := range []string{"merge", "split", "cut", "compress", "rotate", "pdf-to-image", "image-to-pdf", "protect", "unlock", "preview"} {
 		t.Run(operation, func(t *testing.T) {
 			rec := post(r, "/api/"+operation)
 			if rec.Code != http.StatusRequestEntityTooLarge || !strings.Contains(rec.Body.String(), "limit is 1 MB") {

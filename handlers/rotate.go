@@ -3,20 +3,12 @@ package handlers
 import (
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/pdfcpu/pdfcpu/pkg/api"
 )
-
-// maxPageSelectors bounds how many page entries a single request may name.
-const maxPageSelectors = 1000
-
-// pageSelector matches a single page ("7") or an inclusive range ("2-9"),
-// which is all this endpoint accepts in the pages field.
-var pageSelector = regexp.MustCompile(`^\d{1,6}(-\d{1,6})?$`)
 
 func Rotate(c *gin.Context) {
 	file, err := c.FormFile("file")
