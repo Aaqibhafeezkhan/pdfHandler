@@ -78,56 +78,6 @@ Or build the container, which bundles both tools:
 docker build -t pdfhandler .
 ```
 
-### Docker Hub overview
-
-The [Docker Hub repository](https://hub.docker.com/r/r4faelrs/pdfhandler) uses this
-README as its overview. The
-[overview workflow](.github/workflows/dockerhub-description.yml) syncs it when
-this file or the workflow changes on `main`; it can also be run manually from
-GitHub Actions by selecting **Update Docker Hub overview → Run workflow** on
-`main`. Relative image and documentation links are converted to GitHub URLs.
-
-Maintainers must configure two GitHub Actions repository secrets under
-**Settings → Secrets and variables → Actions**: `DOCKERHUB_USERNAME` (the Docker
-Hub account with permission to update `r4faelrs/pdfhandler`) and `DOCKERHUB_TOKEN`
-(a personal access token with Read, Write, Delete permissions, as required by the
-[sync action](https://github.com/peter-evans/dockerhub-description#action-inputs)).
-After adding the secrets, run the workflow once to populate an empty overview.
-This workflow updates repository text only; it does not build or push images.
-
-## Testing
-
-Two layers, both run by [CI](.github/workflows/ci.yml) on every push and pull
-request.
-
-**Go tests** cover the handlers in isolation — the validation and rejection
-rules, the zip and PDF output of each operation, and the middleware. Fixtures
-are real PDFs built through pdfcpu at test time, so there are no binary blobs in
-the repo. Tests that need ghostscript or poppler skip when those aren't
-installed:
-
-```bash
-go test ./...
-go test -race -cover ./...
-```
-
-**A functional smoke test** drives a running instance over HTTP and checks what
-unit tests can't: the built container, its bundled tools, the response headers,
-and the configured request body cap end to end.
-
-```bash
-docker build -t pdfhandler .
-docker run -d --name pdfh -p 8080:8080 \
-  --read-only --tmpfs /tmp --user 1001:1001 --cap-drop ALL pdfhandler
-./scripts/smoke.sh http://127.0.0.1:8080
-docker rm -f pdfh
-```
-
-CI runs the container under the same constraints the Kubernetes Deployment
-applies — non-root, read-only root filesystem, all capabilities dropped — so a
-change that quietly needs to write outside `/tmp` fails the build rather than
-the cluster. `govulncheck` runs as a separate job.
-
 ## Configuration
 
 | Variable | Default | Purpose |
@@ -252,60 +202,10 @@ k8s/                 Namespace, Deployment, Service, Ingress
 
 ## Contributing
 
-Issues and pull requests are welcome. This is a homelab project, so the bar is
-"does it work and is it safe", not process.
+For bug reports, feature requests, development setup, tests, and pull requests,
+see the [contribution guide](contribute.md).
 
-### Before you open a PR
-
-```bash
-gofmt -l .        # must print nothing
-go vet ./...
-go test -race ./...
-```
-
-CI runs those plus `govulncheck` and the container smoke test, so it is worth
-running the functional layer too if you touched a handler or the Dockerfile —
-see [Testing](#testing). All three jobs must be green to merge.
-
-### Adding an operation
-
-Each operation is one file in `handlers/`. To add one:
-
-1. Write the handler. Take the shared helpers from `util.go` rather than
-   rolling your own — `saveUploadedPDF` for the magic-byte check, `runTool` for
-   anything that shells out, `failInternal`/`failBadRequest`/`failUpload` for
-   responses.
-2. Register the route in `newRouter` in `main.go`.
-3. Add tests to both layers: the rejection cases in
-   `handlers/validation_test.go`, the happy path in
-   `handlers/operations_test.go`, and a line in `scripts/smoke.sh`.
-4. Add the tool definition and icon in `static/app.js`, any options in
-   `static/index.html`, and a row to the API table here.
-
-### What review will look for
-
-The handlers take untrusted files and hand them to ghostscript, poppler and
-pdfcpu, so a few rules are not negotiable:
-
-- **Validate and reject, don't coerce.** A bad parameter is a 400, not a silent
-  fallback to a default the caller didn't ask for.
-- **Never build a path from a client-supplied filename.** Name the temp file
-  yourself; take at most a sanitised extension. `safeImageExt` exists for this.
-- **Never echo tool output or library errors to the client.** They quote temp
-  paths and fragments of the uploaded document. Log them, return a fixed
-  message.
-- **Bound anything that can run long or grow large** — a timeout on the command,
-  a cap on the count.
-
-Comments should explain *why*, not restate the code. Same for commit messages:
-say what problem the change solves and what you ruled out. The existing history
-is the reference.
-
-### Reporting a security issue
-
-Please don't open a public issue for a vulnerability. Use GitHub's [private
-vulnerability reporting](https://github.com/rafaelsilvabr/pdfHandler/security/advisories/new)
-so it can be fixed before it is described in public.
+Report vulnerabilities through [private vulnerability reporting](https://github.com/rafaelsilvabr/pdfHandler/security/advisories/new).
 
 ## Built with
 
