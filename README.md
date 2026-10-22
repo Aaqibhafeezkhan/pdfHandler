@@ -29,8 +29,9 @@ The responsive workspace includes tool search (press `/`), category filters,
 list and block layouts, keyboard-accessible page selection, and a compact
 navigation menu on mobile. The top-bar toggle hides or restores the desktop
 sidebar; layout and sidebar preferences are remembered in your browser.
-In Merge PDFs, use the up/down arrows beside each selected file to set the
-document order before merging. Files are combined from top to bottom.
+In Merge PDFs and Image → PDF, use the up/down arrows beside each selected
+file to set its position. The selected-file list and image previews stay in the
+same order, and Image → PDF creates one page per image from top to bottom.
 In Split PDF, choose **Custom page ranges** and enter `1,3,6-7` to create three
 PDFs: page 1, page 3, and pages 6–7 together. Each comma-separated entry creates
 one PDF, in the entered order; unlisted pages are excluded. Overlapping or
